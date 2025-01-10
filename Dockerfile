@@ -1,5 +1,5 @@
 # 使用 Node.js 18 作为基础镜像
-FROM node:18-slim as builder
+FROM --platform=linux/amd64 node:18-slim as builder
 
 # 设置工作目录
 WORKDIR /app
@@ -13,17 +13,18 @@ RUN apt-get update && apt-get install -y \
 # 首先复制依赖文件
 COPY package*.json ./
 
-# 安装所有依赖
+# 安装所有依赖，包括 esbuild
 RUN npm install
+RUN npm install -g esbuild
 
 # 复制源代码
 COPY . .
 
 # 构建应用
-RUN npm run build
+RUN npm run build || (echo "Build failed" && exit 1)
 
 # 第二阶段：创建生产镜像
-FROM node:18-slim
+FROM --platform=linux/amd64 node:18-slim
 WORKDIR /app
 
 # 复制构建产物和必要文件
