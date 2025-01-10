@@ -1,5 +1,5 @@
 # 使用 Node.js 18 作为基础镜像
-FROM node:18-slim as builder
+FROM node:18-slim AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -11,7 +11,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制项目文件
+# 首先复制 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 安装所有依赖（包括开发依赖）
+RUN npm install --production=false
+
+# 复制其余项目文件
 COPY . .
 
 # 创建 .env 文件
@@ -19,8 +25,8 @@ RUN echo "GOOGLE_API_KEY=placeholder" > .env && \
     echo "NODE_ENV=production" >> .env && \
     echo "PORT=7860" >> .env
 
-# 安装所有依赖（包括开发依赖）
-RUN npm install --production=false
+# 确保 npm 命令可执行
+RUN chmod +x /app/node_modules/.bin/*
 
 # 构建应用
 RUN npm run build
@@ -43,7 +49,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 # 设置环境变量
 ENV NODE_ENV=production
-ENV PORT=7860环境端口=7860
+ENV PORT=7860
 
 # 创建启动脚本
 RUN echo '#!/bin/sh\n\
