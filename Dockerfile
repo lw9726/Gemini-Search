@@ -17,6 +17,9 @@ COPY package*.json ./
 # 安装所有依赖（包括开发依赖）
 RUN npm install --production=false
 
+# 特别安装 esbuild
+RUN npm install -g esbuild
+
 # 复制其余项目文件
 COPY . .
 
@@ -25,11 +28,15 @@ RUN echo "GOOGLE_API_KEY=placeholder" > .env && \
     echo "NODE_ENV=production" >> .env && \
     echo "PORT=7860" >> .env
 
+# 设置 esbuild 平台
+ENV ESBUILD_PLATFORM=node
+ENV ESBUILD_BINARY_PATH=/usr/local/lib/node_modules/esbuild/bin/esbuild
+
 # 确保 npm 命令可执行
 RUN chmod +x /app/node_modules/.bin/*
 
 # 构建应用
-RUN npm run build
+RUN npm run build || (cat /root/.npm/_logs/*-debug.log && exit 1)
 
 # 第二阶段：创建生产镜像
 FROM node:18-slim
