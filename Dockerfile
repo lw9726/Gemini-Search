@@ -6,14 +6,17 @@ WORKDIR /app
 
 # 安装必要的系统依赖
 RUN apt-get update && apt-get install -y \
-    python3 \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+   python3 \
+   build-essential \
+   && rm -rf /var/lib/apt/lists/*
 
 # 首先复制依赖文件
 COPY package*.json ./
 
-# 安装所有依赖，包括 esbuild
+# 设置生产环境
+ENV NODE_ENV=production
+
+# 安装所有依赖，包括开发依赖
 RUN npm install
 RUN npm install -g esbuild
 
@@ -30,13 +33,11 @@ WORKDIR /app
 # 复制构建产物和必要文件
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
-
-# 只安装生产依赖
-RUN npm ci --only=production
+COPY --from=builder /app/node_modules ./node_modules
 
 # 设置环境变量
 ENV NODE_ENV=production \
-    PORT=7860
+   PORT=7860
 
 # 设置用户
 RUN chown -R node:node /app
@@ -46,4 +47,4 @@ USER node
 EXPOSE 7860
 
 # 启动应用
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/index.js"]
